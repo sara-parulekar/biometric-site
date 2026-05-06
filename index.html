@@ -2947,55 +2947,6 @@ document.getElementById("submitForm").addEventListener("click", async () => {
 });
 
 /* ---------- RESULTS ---------- */
-let ghostsSeeded = false;
-
-function ensureGhostSubmissions() {
-  if (ghostsSeeded) return;
-  ghostsSeeded = true;
-  const ghostCount = 8;
-  for (let i = 0; i < ghostCount; i++) {
-    const png = makeGhostPng({
-      distort: Math.random()*70,
-      pix:     Math.random()*60,
-      bin:     Math.random()*55,
-      surv:    Math.random()*70,
-      seed:    Math.random()*1000,
-    });
-    submissions.push({
-      id: "subj_" + Math.random().toString(36).slice(2,6).toUpperCase(),
-      png,
-      tags: pickGhostTags(),
-      truth: pickGhostTruth(),
-      x: 5 + Math.random()*90,
-      y: 5 + Math.random()*90,
-      isYou: false,
-    });
-  }
-}
-
-function pickGhostTags() {
-  const pool = ["human","computer","residual","leaking","ghost","indexed",
-                "surveilled","alone","raining","outside","echo","symbolic"];
-  const n = 1 + Math.floor(Math.random()*3);
-  const out = new Set();
-  while (out.size < n) out.add(pool[Math.floor(Math.random()*pool.length)]);
-  return [...out];
-}
-function pickGhostTruth() {
-  const lines = [
-    "i exist in fragments",
-    "the eye keeps watching",
-    "i'm only the data",
-    "i was here in 1992",
-    "what is the residue of me",
-    "the screen knows my face",
-    "log everything",
-    "i am classified",
-    "",
-  ];
-  return lines[Math.floor(Math.random()*lines.length)];
-}
-
 function ellipsePts(cx, cy, rx, ry, numPoints) {
   const pts = [];
   for (let i = 0; i < numPoints; i++) {
@@ -3005,100 +2956,6 @@ function ellipsePts(cx, cy, rx, ry, numPoints) {
     pts.push([x, y]);
   }
   return pts;
-}
-
-function makeGhostPng(p) {
-  const W = 320, H = 240;
-  const c = document.createElement("canvas");
-  c.width = W; c.height = H;
-  const ctx = c.getContext("2d");
-  // background
-  ctx.fillStyle = "#000a8a";
-  ctx.fillRect(0,0,W,H);
-  // grid
-  ctx.strokeStyle = "rgba(43,255,122,0.18)";
-  ctx.beginPath();
-  ctx.moveTo(W/2,0); ctx.lineTo(W/2,H);
-  ctx.moveTo(0,H/2); ctx.lineTo(W,H/2);
-  ctx.stroke();
-  // body
-  ctx.save();
-  ctx.translate(W/2, H/2);
-  ctx.scale(0.42, 0.42);
-  ctx.lineWidth = 2;
-  ctx.strokeStyle = "rgba(43,255,122,0.95)";
-  // basic body lines
-  const t = p.seed/100;
-  const amp = (p.distort/100) * 18;
-  const warp = (x,y) => [x + Math.sin(y*0.04 + t)*amp, y + Math.cos(x*0.04 + t*1.3)*amp*0.7];
-  const segs = [
-    ellipsePts(0,-200,55,70,40),
-    [[-100,-100],[-110,-50],[-90,30],[-78,90],[-72,140],[-30,200],
-     [30,200],[72,140],[78,90],[90,30],[110,-50],[100,-100]],
-    [[-100,-100],[-150,30],[-160,130]],
-    [[ 100,-100],[ 150,30],[ 160,130]],
-    [[-30,200],[-50,290],[-40,380]],
-    [[ 30,200],[ 50,290],[ 40,380]],
-  ];
-  segs.forEach(seg => {
-    ctx.beginPath();
-    seg.forEach((pt,i) => {
-      const [wx,wy] = warp(pt[0],pt[1]);
-      if (i === 0) ctx.moveTo(wx,wy); else ctx.lineTo(wx,wy);
-    });
-    ctx.stroke();
-  });
-  ctx.restore();
-
-  // pixelate by re-rendering small (simulated)
-  if (p.pix > 1) {
-    const factor = 1 - (p.pix/100)*0.85;
-    const sw = Math.max(20, Math.floor(W*factor));
-    const sh = Math.max(15, Math.floor(H*factor));
-    const tmp = document.createElement("canvas");
-    tmp.width = sw; tmp.height = sh;
-    tmp.getContext("2d").drawImage(c, 0, 0, sw, sh);
-    ctx.fillStyle = "#000a8a"; ctx.fillRect(0,0,W,H);
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(tmp, 0, 0, W, H);
-    ctx.imageSmoothingEnabled = true;
-  }
-
-  // binary overlay
-  if (p.bin > 0) {
-    ctx.fillStyle = "rgba(43,255,122,0.85)";
-    ctx.font = "10px 'Courier New', monospace";
-    const d = p.bin/100;
-    for (let yy = 0; yy < H; yy += 12) {
-      for (let xx = 0; xx < W; xx += 12) {
-        if (Math.random() < d * 0.9) {
-          ctx.globalAlpha = 0.3 + Math.random()*0.6;
-          ctx.fillText(Math.random()<0.5 ? "0":"1", xx, yy+10);
-        }
-      }
-    }
-    ctx.globalAlpha = 1;
-  }
-  // surveillance
-  if (p.surv > 0) {
-    const lv = p.surv/100;
-    ctx.strokeStyle = "rgba(255,30,46,0.9)";
-    ctx.fillStyle = "rgba(255,30,46,0.85)";
-    ctx.font = "9px 'Courier New', monospace";
-    for (let i = 0; i < 4 + lv*6; i++) {
-      const x = 30 + Math.random()*(W-60);
-      const y = 30 + Math.random()*(H-60);
-      const sz = 8 + lv*10;
-      ctx.beginPath();
-      ctx.moveTo(x-sz,y-sz+3); ctx.lineTo(x-sz,y-sz); ctx.lineTo(x-sz+3,y-sz);
-      ctx.moveTo(x+sz,y-sz+3); ctx.lineTo(x+sz,y-sz); ctx.lineTo(x+sz-3,y-sz);
-      ctx.moveTo(x-sz,y+sz-3); ctx.lineTo(x-sz,y+sz); ctx.lineTo(x-sz+3,y+sz);
-      ctx.moveTo(x+sz,y+sz-3); ctx.lineTo(x+sz,y+sz); ctx.lineTo(x+sz-3,y+sz);
-      ctx.stroke();
-      ctx.fillText("TGT:"+String(i+1).padStart(2,"0"), x+sz+2, y-sz+8);
-    }
-  }
-  return c.toDataURL("image/png");
 }
 
 async function renderResults() {
@@ -3116,7 +2973,6 @@ async function renderResults() {
   } catch (err) {
     console.error("fetch submissions failed:", err);
   }
-  ensureGhostSubmissions();
   const plot = document.getElementById("plot");
   plot.querySelectorAll(".point, .float-card").forEach(n => n.remove());
   const list = document.getElementById("subList");
