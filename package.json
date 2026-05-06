@@ -8,7 +8,7 @@
     "dev": "node --watch server.js"
   },
   "dependencies": {
-    "better-sqlite3": "^9.4.3",
+    "sqlite3": "^5.1.6",
     "express": "^4.18.3"
   }
 }
