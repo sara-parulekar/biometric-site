@@ -1997,7 +1997,7 @@ document.getElementById("submitBio").addEventListener("click", async () => {
   switchScreen("form");
 });
 
-document.getElementById("submitForm").addEventListener("click", () => {
+document.getElementById("submitForm").addEventListener("click", async () => {
   formCoords = {
     x: parseInt(document.getElementById("slider1").value, 10),
     y: parseInt(document.getElementById("slider2").value, 10),
@@ -2005,7 +2005,24 @@ document.getElementById("submitForm").addEventListener("click", () => {
   if (pendingSubmission) {
     pendingSubmission.x = 5 + (formCoords.x/100) * 90;
     pendingSubmission.y = 5 + ((100 - formCoords.y)/100) * 90;
-    submissions.push(pendingSubmission);
+
+    try {
+      await fetch("/api/submissions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id:    pendingSubmission.id,
+          png:   pendingSubmission.png,
+          tags:  pendingSubmission.tags,
+          truth: pendingSubmission.truth,
+          x:     pendingSubmission.x,
+          y:     pendingSubmission.y,
+        }),
+      });
+    } catch (err) {
+      console.error("submit failed:", err);
+    }
+
     pendingSubmission = null;
   }
   switchScreen("results");
@@ -2155,7 +2172,23 @@ function makeGhostPng(p) {
   return c.toDataURL("image/png");
 }
 
-function renderResults() {
+async function renderResults() {
+  try {
+    const res = await fetch("/api/submissions");
+    if (res.ok) {
+      const remote = await res.json();
+      // merge remote into local submissions array, avoiding duplicates
+      remote.forEach(s => {
+        if (!submissions.some(e => e.id === s.id)) {
+          submissions.push({ ...s, isYou: s.id === SUBJ });
+        }
+      });
+      // mark own entry in case it came back from the server
+      submissions.forEach(s => { s.isYou = s.id === SUBJ; });
+    }
+  } catch (err) {
+    console.error("fetch submissions failed:", err);
+  }
   ensureGhostSubmissions();
   const plot = document.getElementById("plot");
   plot.querySelectorAll(".point, .float-card").forEach(n => n.remove());
