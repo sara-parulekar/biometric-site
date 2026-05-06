@@ -2910,7 +2910,7 @@ document.getElementById("submitForm").addEventListener("click", async () => {
     pendingSubmission.y = 5 + ((100 - formCoords.y)/100) * 90;
 
     try {
-      const res = await fetch("http://localhost:3000/api/submissions", {
+      const res = await fetch("https://biometric-site.onrender.com/api/submissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3103,7 +3103,7 @@ function makeGhostPng(p) {
 
 async function renderResults() {
   try {
-    const res = await fetch("http://localhost:3000/api/submissions");
+    const res = await fetch("https://biometric-site.onrender.com/api/submissions");
     if (res.ok) {
       const remote = await res.json();
       remote.forEach(s => {
