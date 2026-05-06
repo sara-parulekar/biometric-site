@@ -2905,45 +2905,43 @@ document.getElementById("submitForm").addEventListener("click", async () => {
     x: parseInt(document.getElementById("slider1").value, 10),
     y: parseInt(document.getElementById("slider2").value, 10),
   };
+
+  const btn = document.getElementById("submitForm");
+
   if (pendingSubmission) {
     pendingSubmission.x = 5 + (formCoords.x/100) * 90;
     pendingSubmission.y = 5 + ((100 - formCoords.y)/100) * 90;
 
-    try {
-      const res = await fetch("https://biometric-site.onrender.com/api/submissions", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id:    pendingSubmission.id,
-          png:   pendingSubmission.png,
-          tags:  pendingSubmission.tags,
-          truth: pendingSubmission.truth,
-          x:     pendingSubmission.x,
-          y:     pendingSubmission.y,
-        }),
-      });
-      if (!res.ok) {
-        let errorMsg = "unknown error";
-        try {
-          const error = await res.json();
-          errorMsg = error.error || errorMsg;
-        } catch (e) {
-          errorMsg = res.statusText || errorMsg;
-        }
-        console.error("submit failed:", res.status, errorMsg);
-        alert("Submission failed: " + errorMsg);
-        return;
-      }
-      console.log("Submission successful!");
-    } catch (err) {
-      console.error("submit failed:", err);
-      alert("Submission failed: " + err.message);
-      return;
-    }
-
+    // optimistically add to local array and switch screen immediately
+    submissions.push({ ...pendingSubmission });
+    const toSend = { ...pendingSubmission };
     pendingSubmission = null;
+
+    switchScreen("results");
+
+    // send to backend in the background
+    btn.disabled = true;
+    fetch("https://biometric-site.onrender.com/api/submissions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id:    toSend.id,
+        png:   toSend.png,
+        tags:  toSend.tags,
+        truth: toSend.truth,
+        x:     toSend.x,
+        y:     toSend.y,
+      }),
+    })
+    .then(res => {
+      if (!res.ok) console.error("submit failed:", res.status);
+    })
+    .catch(err => console.error("submit failed:", err))
+    .finally(() => { btn.disabled = false; });
+
+  } else {
+    switchScreen("results");
   }
-  switchScreen("results");
 });
 
 /* ---------- RESULTS ---------- */
